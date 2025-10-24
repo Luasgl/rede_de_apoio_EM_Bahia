@@ -26,7 +26,7 @@ Como este projeto é um único arquivo HTML com dependências externas (Tailwind
 
 Clone o repositório:
 
-git clone [https://github.com/SEU-USUARIO/rede-apoio-em-bahia.git](https://github.com/SEU-USUARIO/rede-apoio-em-bahia.git)
+git clone (https://github.com/Luasgl/rede_de_apoio_EM_Bahia.git)
 
 
 Navegue até a pasta:
