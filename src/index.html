@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rede de Apoio Esclerose Múltipla - Bahia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS and JS for the map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4; 
+            color: #3D405B; 
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        #map-container {
+            height: 400px; 
+            border-radius: 12px; 
+            z-index: 1; 
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .card-enter {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F8F7F4;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #A6A6A6;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8D8D8D;
+        }
+        .custom-div-icon {
+            background: none;
+            border: none;
+        }
+        .custom-marker {
+            background-color: var(--marker-color, #3D405B);
+            width: 20px;
+            height: 20px;
+            display: block;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-[#E07A5F] text-white py-6 shadow-md">
+        <div class="container mx-auto px-6 text-center">
+            <h1 class="text-4xl font-bold tracking-tight">Rede de Apoio EM Bahia</h1>
+            <p class="mt-2 text-lg opacity-90">Conectando pessoas, fortalecendo a jornada.</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+        
+        <section id="filters" class="mb-8 p-6 bg-white rounded-xl shadow-lg">
+            <div class="text-center mb-6">
+                 <h2 class="text-2xl font-bold text-[#3D405B]">Encontre Apoio</h2>
+                 <p class="text-gray-600 mt-1">Utilize os filtros e os gráficos para encontrar o recurso ideal para você.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                <div>
+                    <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Buscar por nome ou serviço</label>
+                    <input type="text" id="search" placeholder="Ex: Fisioterapia ou HUPES" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#81B29A] focus:border-transparent transition">
+                </div>
+                <div>
+                    <label for="region" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por região</label>
+                    <select id="region" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#81B29A] focus:border-transparent transition bg-white">
+                        <option value="all">Todas as Regiões</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="type" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por tipo de organização</label>
+                    <select id="type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#81B29A] focus:border-transparent transition bg-white">
+                        <option value="all">Todos os Tipos</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section id="dashboard" class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-bold text-center mb-4 text-[#3D405B]">Organizações por Região (Clique para Filtrar)</h3>
+                <div class="chart-container">
+                    <canvas id="regionChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-bold text-center mb-4 text-[#3D405B]">Tipos de Organização (Clique para Filtrar)</h3>
+                <div class="chart-container">
+                    <canvas id="typeChart"></canvas>
+                </div>
+            </div>
+        </section>
+        
+        <section id="directory">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-[#3D405B]">Diretório de Organizações</h2>
+                <span id="resultsCount" class="text-gray-600 font-medium"></span>
+            </div>
+            <p class="text-gray-600 mb-6">Explore a lista completa dos recursos. Clique em uma categoria no gráfico acima para refinar sua busca.</p>
+            <div id="organization-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+            <div id="no-results" class="hidden text-center py-12 px-6 bg-white rounded-xl shadow-lg">
+                <p class="text-xl text-gray-700">Nenhuma organização encontrada.</p>
+                <p class="text-gray-500 mt-2">Tente ajustar seus filtros de busca.</p>
+            </div>
+        </section>
+
+        <section id="map-view" class="mt-12 p-6 bg-white rounded-xl shadow-lg">
+            <h2 class="text-2xl font-bold text-center mb-4 text-[#3D405B]">Visualização Geográfica</h2>
+            <p class="text-center text-gray-600 mb-4">Veja onde os pontos de apoio físico estão localizados. A cor de cada marcador corresponde ao seu tipo de organização.</p>
+            <div id="map-container" class="leaflet-container"></div>
+        </section>
+        
+        <section id="contribute" class="mt-12 p-8 bg-[#81B29A] bg-opacity-30 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-bold text-center mb-4 text-[#3D405B]">Colabore: Sugira uma Organização</h2>
+            <p class="text-center text-gray-700 mb-6 max-w-2xl mx-auto">Conhece um recurso de apoio que ainda não está aqui? Ajude a expandir nossa rede! Siga as instruções abaixo para configurar o envio para o seu Google Forms.</p>
+            
+            <!-- ATENÇÃO: O action deve ser o link de submissão do seu Google Forms. Os campos 'name' devem ser os IDs 'entry.XXXXXX' do seu forms real. -->
+            <form id="contributionForm" class="max-w-xl mx-auto space-y-4" action="[SEU_LINK_DE_SUBMISSAO_GOOGLE_FORMS]" method="POST" target="_blank">
+                
+                <div>
+                    <label for="orgName" class="block text-sm font-medium text-gray-700">Nome da Organização <span class="text-red-500">*</span></label>
+                    <!-- entry.123456789 é um placeholder. Você deve substituí-lo. -->
+                    <input type="text" id="orgName" name="entry.123456789" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#E07A5F] focus:border-[#E07A5F]">
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="city" class="block text-sm font-medium text-gray-700">Cidade <span class="text-red-500">*</span></label>
+                        <!-- entry.987654321 é um placeholder. Você deve substituí-lo. -->
+                        <input type="text" id="city" name="entry.987654321" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#E07A5F] focus:border-[#E07A5F]">
+                    </div>
+                    <div>
+                        <label for="contactEmail" class="block text-sm font-medium text-gray-700">E-mail para Contato (Se houver)</label>
+                        <!-- entry.112233445 é um placeholder. Você deve substituí-lo. -->
+                        <input type="email" id="contactEmail" name="entry.112233445" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#E07A5F] focus:border-[#E07A5F]">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="services" class="block text-sm font-medium text-gray-700">Quais serviços ela oferece? (Ex: Psicológico, Físico, Social)</label>
+                    <!-- entry.554433221 é um placeholder. Você deve substituí-lo. -->
+                    <textarea id="services" name="entry.554433221" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#E07A5F] focus:border-[#E07A5F]"></textarea>
+                </div>
+                
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#E07A5F] hover:bg-[#c96c56] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E07A5F] transition">
+                    Enviar Sugestão
+                </button>
+                <div id="formMessage" class="hidden mt-3 text-center p-3 rounded-lg bg-green-100 text-green-700"></div>
+            </form>
+        </section>
+
+        <section id="about" class="mt-12 p-8 bg-[#F2CC8F] bg-opacity-50 rounded-xl shadow-lg text-center">
+            <h2 class="text-2xl font-bold text-[#3D405B]">Sobre este Projeto: Nascido de uma Jornada Pessoal e de Crescimento Profundo</h2>
+            <p class="mt-4 max-w-3xl mx-auto text-gray-700 leading-relaxed">
+                Este diretório é um pedacinho da minha história. Meu nome é Luane Gonçalves Silva, tenho 29 anos, e desde meu diagnóstico de Esclerose Múltipla em 2018, aprendi algo vital: ninguém deve enfrentar essa jornada sozinho. A força de uma rede de apoio acessível e calorosa faz toda a diferença nos nossos dias.
+            </p>
+            <p class="mt-4 max-w-3xl mx-auto text-gray-700 leading-relaxed">
+                Por isso, decidi unir minha dedicação pela tecnologia à minha experiência de vida. O propósito deste projeto é transformar a dificuldade em conexão, usando esta plataforma para criar um espaço centralizado e de fácil acesso para que portadores, familiares e amigos possam encontrar as associações, ONGs e grupos de apoio que oferecem suporte vital em todo o estado da Bahia
+            </p>
+            <p class="mt-4 max-w-3xl mx-auto text-gray-700 leading-relaxed font-semibold">
+                Sinta-se lembrado e acolhido. Este mais do que um site é uma dedicação coletiva, feito com o coração e intenção para que você encontre o suporte que precisa.
+            </p>
+        </section>
+
+    </main>
+
+    <footer class="mt-12 bg-[#3D405B] text-white py-6">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2025 Rede de Apoio EM Bahia. Um projeto de código aberto.</p>
+            <p class="mt-1 text-sm opacity-80">Deseja adicionar uma organização? <a href="#contribute" class="underline hover:text-[#81B29A]">Preencha o formulário</a>.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const TYPE_COLORS = {
+                'Associação': '#E07A5F', 
+                'ONG': '#3D405B', 
+                'Centro de Referência/Clínica': '#81B29A', 
+                'Hospital': '#A8A0C9', 
+                'Farmácia de Alto Custo': '#F2CC8F', 
+                'Comunidades Online': '#6C6C7B', 
+            };
+
+            const organizationsData = [
+                { name: "ABEM - Assoc. Brasileira de Esclerose Múltipla", city: "São Paulo (atuação nacional)", region: "Nacional", type: "Associação", address: "Rua Frei Caneca, 1113, Consolação, São Paulo - SP. Website: abem.org.br", phone: "(11) 3287-5735", email: "abem@abem.org.br", services: ["Apoio Psicológico", "Reabilitação", "Advocacy", "Conteúdo Informativo"], lat: -23.5558, lon: -46.6548 },
+                { name: "AME - Amigos Múltiplos pela Esclerose", city: "São Paulo (atuação nacional)", region: "Nacional", type: "ONG", address: "Av. Indianópolis, 2552, Indianópolis, São Paulo - SP. Website: amigosmultiplos.org.br", phone: "0800 773 1000", email: "contato@amigosmultiplos.org.br", services: ["Canal de Denúncias", "Eventos", "Advocacy", "Bem-estar"], lat: -23.6125, lon: -46.6588 },
+                { name: "APEMBAHIA - Assoc. de Pacientes com Esclerose Múltipla da Bahia", city: "Salvador", region: "Metropolitana", type: "Associação", address: "Consultar redes sociais para agenda. Instagram: @apembahia", phone: "(71) 99127-9941", email: "apembahia@hotmail.com", services: ["Grupos de Convivência", "Palestras", "Advocacy Local", "Suporte Familiar"], lat: -12.9714, lon: -38.5101 },
+                { name: "CRE-EM (Centro de Referência em Esclerose Múltipla)", city: "Salvador", region: "Metropolitana", type: "Centro de Referência/Clínica", address: "Dentro do HUPES, Ambulatório Magalhães Neto, R. Dr. Augusto Viana, s/n, Canela", phone: "(71) 3283-8100", email: "neurologia.hupes@ebserh.gov.br", services: ["Diagnóstico", "Tratamento SUS", "Acompanhamento Multidisciplinar", "Pesquisa"], lat: -12.9909, lon: -38.5173 },
+                { name: "HUPES - Complexo Hospitalar Universitário Professor Edgard Santos", city: "Salvador", region: "Metropolitana", type: "Hospital", address: "R. Dr. Augusto Viana, s/n, Canela", phone: "(71) 3283-8100", email: "sic.hupes@ebserh.gov.br", services: ["Atendimento Neurológico Especializado", "Internação", "Exames de Alta Complexidade"], lat: -12.9909, lon: -38.5173 },
+                { name: "Hospital Geral Roberto Santos (HGRS)", city: "Salvador", region: "Metropolitana", type: "Hospital", address: "Rua Direta do Saboeiro, s/n - Cabula", phone: "(71) 3103-8800", email: "hgrs.diretoria@saude.ba.gov.br", services: ["Atendimento Neurológico de Emergência", "Ambulatorial", "Referência SUS"], lat: -12.9519, lon: -38.4593 },
+                { name: "NAF / CREAF (Farmácia de Alto Custo)", city: "Salvador", region: "Metropolitana", type: "Farmácia de Alto Custo", address: "Av. Sete de Setembro, 155, Ladeira da Barra", phone: "(71) 3116-4911 / 4935", email: "creaf.farma@saude.ba.gov.br", services: ["Dispensação de Medicamentos de Alto Custo", "Orientação Farmacêutica"], lat: -12.9972, lon: -38.5305 },
+                { name: "NEURODIAGNOSE - Centro de Neurologia e Neurofisiologia", city: "Itabuna", region: "Litoral Sul", type: "Centro de Referência/Clínica", address: "Av. Amélia Amado, 345, Centro", phone: "(73) 3613-3011", email: "contato@neurodiagnose.med.br", services: ["Consultas Neurológicas", "Eletroneuromiografia", "Apoio Diagnóstico"], lat: -14.7915, lon: -39.2741 },
+                { name: "Clínica Humanis (Dr. Wladimir Bocca Vieira de Rezende)", city: "Salvador", region: "Metropolitana", type: "Centro de Referência/Clínica", address: "Rua Eduardo José dos Santos, 147, Edf. Fernando Filgueiras, Sala 1106, Garibaldi", phone: "(71) 3245-5606", email: "N/A", services: ["Atendimento Neurológico Especializado", "Doenças Desmielinizantes"], lat: -12.9880, lon: -38.4984 },
+                { name: "Hospital Aliança", city: "Salvador", region: "Metropolitana", type: "Hospital", address: "Av. Juracy Magalhães Júnior, 2096 - Rio Vermelho", phone: "(71) 2108-5600", email: "N/A", services: ["Centro de Neurologia Especializado", "Ressonância Magnética 3T", "Infusão de Medicamentos"], lat: -12.9906, lon: -38.4746 },
+                { name: "Grupo 'Esclerose Múltipla Bahia'", city: "Online", region: "Digital", type: "Comunidades Online", address: "Plataforma Facebook (Grupo Privado)", phone: "N/A", email: "N/A", services: ["Troca de Informações", "Apoio Mútuo", "Compartilhamento de Experiências"], lat: -13.0, lon: -38.5 },
+                { name: "Comunidade 'EM Positivo'", city: "Online", region: "Digital", type: "Comunidades Online", address: "Plataformas Digitais (Blog, Instagram). Website: empositivo.com.br", phone: "N/A", email: "contato@empositivo.com.br", services: ["Conteúdo Informativo", "Notícias sobre Tratamentos", "Direitos"], lat: -13.05, lon: -38.55 }
+            ];
+
+            const searchInput = document.getElementById('search');
+            const regionFilter = document.getElementById('region');
+            const typeFilter = document.getElementById('type');
+            const organizationList = document.getElementById('organization-list');
+            const resultsCount = document.getElementById('resultsCount');
+            const noResults = document.getElementById('no-results');
+            const contributionForm = document.getElementById('contributionForm');
+            const formMessage = document.getElementById('formMessage');
+
+            let regionChart, typeChart;
+            let map;
+
+            function setupFilters() {
+                // Get regions from data, including Nacional and Digital, and sort them
+                const regions = [...new Set(organizationsData.map(org => org.region))].sort((a, b) => {
+                    if (a === 'Metropolitana') return -1;
+                    if (b === 'Metropolitana') return 1;
+                    if (a === 'Nacional') return -1;
+                    if (b === 'Nacional') return 1;
+                    if (a === 'Digital') return 1;
+                    if (b === 'Digital') return -1;
+                    return a.localeCompare(b);
+                });
+
+                // Get types from the new standardized categories
+                const types = Object.keys(TYPE_COLORS).sort();
+
+                regions.forEach(region => {
+                    const option = document.createElement('option');
+                    option.value = region;
+                    option.textContent = region;
+                    regionFilter.appendChild(option);
+                });
+
+                types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    typeFilter.appendChild(option);
+                });
+            }
+
+            function renderOrganizations(orgs) {
+                organizationList.innerHTML = '';
+                if (orgs.length === 0) {
+                    noResults.classList.remove('hidden');
+                    organizationList.classList.add('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                    organizationList.classList.remove('hidden');
+                }
+                
+                resultsCount.textContent = `${orgs.length} resultado(s) encontrado(s)`;
+
+                orgs.forEach(org => {
+                    const typeColor = TYPE_COLORS[org.type] || '#3D405B'; 
+                    const card = document.createElement('div');
+                    card.className = 'bg-white rounded-xl shadow-lg p-6 flex flex-col justify-between transition-transform transform hover:-translate-y-1 card-enter border-t-4';
+                    card.style.borderColor = typeColor; 
+                    
+                    let servicesHTML = org.services.map(service => `<span class="bg-gray-100 text-gray-700 text-xs font-semibold mr-2 mb-2 px-2.5 py-0.5 rounded-full">${service}</span>`).join('');
+
+                    card.innerHTML = `
+                        <div>
+                            <h3 class="text-xl font-bold" style="color: ${typeColor};">${org.name}</h3>
+                            <p class="text-sm font-medium text-gray-600 mt-1">${org.city}, ${org.region}</p>
+                            <p class="text-sm text-gray-500 mt-1 mb-4 font-semibold">${org.type}</p>
+                            <p class="text-gray-700 mt-2 text-sm"><span class="font-semibold">Endereço/Local:</span> ${org.address}</p>
+                            <p class="text-gray-700 mt-1 text-sm"><span class="font-semibold">Telefone:</span> ${org.phone}</p>
+                            <p class="text-gray-700 mt-1 text-sm"><span class="font-semibold">Email:</span> ${org.email === 'N/A' ? 'Não Disponível' : `<a href="mailto:${org.email}" class="text-blue-600 hover:underline">${org.email}</a>`}</p>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                             <h4 class="text-sm font-semibold text-gray-800 mb-2">Serviços Oferecidos:</h4>
+                             <div class="flex flex-wrap">
+                                ${servicesHTML}
+                             </div>
+                        </div>
+                    `;
+                    organizationList.appendChild(card);
+                });
+            }
+
+            function applyFilters() {
+                const searchTerm = searchInput.value.toLowerCase();
+                let selectedRegion = regionFilter.value;
+                let selectedType = typeFilter.value;
+
+                const filteredOrgs = organizationsData.filter(org => {
+                    const matchesSearch = org.name.toLowerCase().includes(searchTerm) || org.services.join(' ').toLowerCase().includes(searchTerm);
+                    const matchesRegion = selectedRegion === 'all' || org.region === selectedRegion;
+                    const matchesType = selectedType === 'all' || org.type === selectedType;
+                    return matchesSearch && matchesRegion && matchesType;
+                });
+
+                renderOrganizations(filteredOrgs);
+                updateCharts(filteredOrgs);
+                updateMapMarkers(filteredOrgs);
+            }
+
+            function setupCharts() {
+                const regionCtx = document.getElementById('regionChart').getContext('2d');
+                const typeCtx = document.getElementById('typeChart').getContext('2d');
+                
+                const chartOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#3D405B',
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                }
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const chart = elements[0].chart;
+                            
+                            if (chart && chart.data && chart.data.labels) {
+                                const elementIndex = elements[0].index;
+                                const label = chart.data.labels[elementIndex];
+                                
+                                if (chart.canvas.id === 'regionChart') {
+                                    regionFilter.value = (regionFilter.value === label) ? 'all' : label;
+                                } else {
+                                    typeFilter.value = (typeFilter.value === label) ? 'all' : label;
+                                }
+                                applyFilters();
+                            }
+                        }
+                    }
+                };
+
+                regionChart = new Chart(regionCtx, {
+                    type: 'bar',
+                    data: { labels: [], datasets: [] },
+                    options: {
+                        ...chartOptions,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: '#3D405B',
+                                    stepSize: 1
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    color: '#3D405B'
+                                }
+                            }
+                        },
+                        plugins: {
+                            ...chartOptions.plugins,
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` ${context.raw} organização(ões)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                typeChart = new Chart(typeCtx, {
+                    type: 'doughnut',
+                    data: { labels: [], datasets: [] },
+                    options: chartOptions,
+                });
+            }
+            
+            function updateCharts(filteredData) {
+                const regionCounts = filteredData.reduce((acc, org) => {
+                    acc[org.region] = (acc[org.region] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const typeCounts = filteredData.reduce((acc, org) => {
+                    acc[org.type] = (acc[org.type] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const sortedRegions = Object.keys(regionCounts).sort((a, b) => regionCounts[b] - regionCounts[a]);
+                
+                regionChart.data.labels = sortedRegions;
+                regionChart.data.datasets[0] = {
+                    label: 'Organizações',
+                    data: sortedRegions.map(region => regionCounts[region]),
+                    backgroundColor: sortedRegions.map(region => {
+                        return '#81B29A'; 
+                    }),
+                    borderColor: '#6a947e',
+                    borderWidth: 1
+                };
+                regionChart.update();
+
+                const typeLabels = Object.keys(typeCounts);
+                typeChart.data.labels = typeLabels;
+                typeChart.data.datasets[0] = {
+                    label: 'Tipos',
+                    data: Object.values(typeCounts),
+                    backgroundColor: typeLabels.map(label => TYPE_COLORS[label] || '#cccccc'),
+                    hoverOffset: 4
+                };
+                typeChart.update();
+            }
+
+            function setupMap() {
+                const bahiaCenter = [-12.5, -41.5]; 
+                
+                map = L.map('map-container').setView(bahiaCenter, 6);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                }).addTo(map);
+
+                updateMapMarkers(organizationsData);
+            }
+
+            let currentMarkers = [];
+
+            function updateMapMarkers(orgs) {
+                if (!map) return;
+
+                currentMarkers.forEach(marker => map.removeLayer(marker));
+                currentMarkers = [];
+
+                let bounds = [];
+
+                // Filter out Digital and Nacional entries, as they are not physical locations in Bahia
+                const mapOrgs = orgs.filter(org => org.lat && org.lon && org.region !== 'Digital' && org.region !== 'Nacional');
+
+                mapOrgs.forEach(org => {
+                    const color = TYPE_COLORS[org.type] || '#3D405B';
+                    
+                    const customIcon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div class="custom-marker" style="--marker-color: ${color};"></div>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+
+                    const marker = L.marker([org.lat, org.lon], { icon: customIcon }).addTo(map);
+                    
+                    const popupContent = `
+                        <div class="p-1 font-sans">
+                            <h4 class="font-bold text-lg" style="color: ${color};">${org.name}</h4>
+                            <p class="text-sm text-gray-700 font-semibold">${org.type}</p>
+                            <p class="text-xs text-gray-600">${org.city}, ${org.region}</p>
+                            <p class="text-xs mt-2">Serviços: ${org.services.join(', ')}</p>
+                            <a href="mailto:${org.email}" class="text-xs text-blue-600 hover:underline mt-1 block">Contato por Email</a>
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent);
+                    currentMarkers.push(marker);
+                    bounds.push([org.lat, org.lon]);
+                });
+                
+                if (bounds.length > 0) {
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                } else {
+                    map.setView([-12.5, -41.5], 6);
+                }
+            }
+
+            contributionForm.addEventListener('submit', async (e) => {
+                // Remove e.preventDefault() for real Google Forms submission
+                
+                formMessage.classList.remove('hidden', 'bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
+                formMessage.classList.add('bg-yellow-100', 'text-yellow-700');
+                formMessage.textContent = 'Enviando... Você será redirecionado para a página de confirmação do Google Forms em uma nova aba.';
+
+                // NOTE: We keep e.preventDefault() here ONLY for the preview environment, 
+                // so the user doesn't lose the immersive. In a real deployment, you would remove it, 
+                // and the browser would submit the form to Google Forms directly.
+                e.preventDefault(); 
+                
+                const form = e.target;
+                const formAction = form.getAttribute('action');
+                
+                if (formAction.includes('[SEU_LINK_DE_SUBMISSAO_GOOGLE_FORMS]')) {
+                    formMessage.classList.replace('bg-yellow-100', 'bg-red-100');
+                    formMessage.classList.replace('text-yellow-700', 'text-red-700');
+                    formMessage.textContent = 'ERRO: Por favor, substitua [SEU_LINK_DE_SUBMISSAO_GOOGLE_FORMS] e os IDs "entry" pelos seus valores reais do Google Forms, conforme as instruções abaixo.';
+                    return;
+                }
+                
+                // Simulação de sucesso após a verificação
+                await new Promise(resolve => setTimeout(resolve, 1000)); 
+                formMessage.classList.replace('bg-yellow-100', 'bg-green-100');
+                formMessage.classList.replace('text-yellow-700', 'text-green-700');
+                formMessage.textContent = 'Sugestão enviada com sucesso! (Simulação). Lembre-se de remover a linha "e.preventDefault()" do JavaScript na versão final para o redirecionamento funcionar.';
+                form.reset();
+            });
+
+            searchInput.addEventListener('keyup', applyFilters);
+            regionFilter.addEventListener('change', applyFilters);
+            typeFilter.addEventListener('change', applyFilters);
+
+            setupFilters();
+            setupCharts();
+            setupMap(); 
+            applyFilters(); 
+        });
+    </script>
+</body>
+</html>
