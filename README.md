@@ -1,6 +1,6 @@
 🧡 Rede de Apoio EM Bahia
 
-Projeto de código aberto para mapear e conectar a rede de apoio a pacientes com Esclerose Múltipla (EM) no estado da Bahia. Conectando pessoas, fortalecendo a jornada.
+Projeto de código aberto em construção para mapear e conectar a rede de apoio a pacientes com Esclerose Múltipla (EM) no estado da Bahia. Conectando pessoas, fortalecendo a jornada.
 
 Sobre Este Projeto
 
@@ -26,7 +26,7 @@ Como este projeto é um único arquivo HTML com dependências externas (Tailwind
 
 Clone o repositório:
 
-git clone [https://github.com/SEU-USUARIO/rede-apoio-em-bahia.git](https://github.com/SEU-USUARIO/rede-apoio-em-bahia.git)
+git clone (https://github.com/Luasgl/rede_de_apoio_EM_Bahia.git)
 
 
 Navegue até a pasta:
