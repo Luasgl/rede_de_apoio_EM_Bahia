@@ -1,6 +1,6 @@
 🧡 Rede de Apoio EM Bahia
 
-Projeto de código aberto para mapear e conectar a rede de apoio a pacientes com Esclerose Múltipla (EM) no estado da Bahia. Conectando pessoas, fortalecendo a jornada.
+Projeto de código aberto em construção para mapear e conectar a rede de apoio a pacientes com Esclerose Múltipla (EM) no estado da Bahia. Conectando pessoas, fortalecendo a jornada.
 
 Sobre Este Projeto
 
